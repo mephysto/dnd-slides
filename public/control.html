@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DM Control Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a2e;
+      color: #e0d5c1;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: #16213e;
+      border-bottom: 2px solid #8b4513;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      color: #e8d5b5;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    /* Buttons */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-hide {
+      background: #4a3520;
+      color: #e8d5b5;
+    }
+    .btn-hide:hover {
+      background: #5a4530;
+    }
+    .btn-hide.active {
+      background: #8b4513;
+      color: #fff;
+    }
+
+    .btn-clear {
+      background: #3a1a1a;
+      color: #e8a5a5;
+    }
+    .btn-clear:hover {
+      background: #5a2a2a;
+    }
+
+    .btn-start {
+      background: #2a3a4a;
+      color: #b5e8ff;
+    }
+    .btn-start:hover {
+      background: #3a4a5a;
+    }
+
+    .btn-refresh {
+      background: #1a3a2a;
+      color: #a5e8b5;
+    }
+    .btn-refresh:hover {
+      background: #2a4a3a;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 0.35rem;
+      margin-right: 0.5rem;
+    }
+
+    .btn-mode {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 6px;
+      background: #1a2a3a;
+      color: #c5d5e5;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-mode.btn-mode--active {
+      background: #5aaaff;
+      color: #0a0a0a;
+    }
+
+    .btn-mode:hover {
+      background: #2a4a6a;
+    }
+
+    .kb-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: #c5d5e5;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .kb-toggle input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .item-card.active {
+      border-color: #5aaaff;
+      box-shadow: 0 0 20px rgba(90, 170, 255, 0.25);
+    }
+
+    .slide-controls {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    .btn-nav,
+    .btn-pause {
+      background: #2a2a3a;
+      color: #e0d5c1;
+    }
+
+    .btn-nav:hover,
+    .btn-pause:hover {
+      background: #3a3a4a;
+    }
+
+    .btn-pause.active {
+      background: #8b4513;
+      color: #fff;
+    }
+
+    .duration-label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+
+    #slide-duration {
+      width: 3.2rem;
+      padding: 0.3rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #0f0f23;
+      color: #e0d5c1;
+    }
+
+    .slide-progress {
+      position: relative;
+      width: 150px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      margin-left: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .slide-progress__fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #5aaaff, #a57bff);
+      transition: width 0.15s linear;
+    }
+
+    .slide-progress__label {
+      position: absolute;
+      top: -1.6rem;
+      right: 0;
+      font-size: 0.7rem;
+      color: #ccc;
+      white-space: nowrap;
+    }
+
+    /* Connection indicator */
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    .connection .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4a4a4a;
+    }
+    .connection .dot.connected { background: #4caf50; }
+    .connection .dot.disconnected { background: #f44336; }
+
+    /* Search */
+    .search-bar {
+      padding: 1rem 1.5rem;
+      background: #1a1a2e;
+      position: sticky;
+      top: 62px;
+      z-index: 99;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0f0f23;
+      color: #e0d5c1;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: #8b4513;
+    }
+
+    .search-bar input::placeholder {
+      color: #555;
+    }
+
+    /* Current item preview */
+    .current-preview {
+      margin: 0 1.5rem 1rem;
+      padding: 1rem;
+      background: #16213e;
+      border-radius: 8px;
+      border: 1px solid #333;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .current-preview img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #0a0a15;
+    }
+
+    .current-preview .info {
+      flex: 1;
+    }
+
+    .current-preview .label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #8b4513;
+      margin-bottom: 0.2rem;
+    }
+
+    .current-preview .name {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .current-preview.empty {
+      opacity: 0.4;
+    }
+
+    /* Item grid */
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem;
+      padding: 0 1.5rem 2rem;
+    }
+
+    .item-card {
+      background: #16213e;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .item-card:hover {
+      border-color: #8b4513;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(139, 69, 19, 0.2);
+    }
+
+    .item-card.selected {
+      border-color: #d4a24e;
+      box-shadow: 0 0 20px rgba(212, 162, 78, 0.3);
+    }
+
+    .item-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: #0a0a15;
+      display: block;
+    }
+
+    .item-card .card-name {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #555;
+    }
+
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+      max-width: 400px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .empty-state code {
+      background: #0f0f23;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #8b9dc3;
+    }
+
+    .selected-list {
+      margin: 0 1.5rem 1rem;
+      padding: 0.75rem 1rem;
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 8px;
+    }
+
+    .selected-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .selected-header .label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8b4513;
+    }
+
+    .selected-items {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #e0d5c1;
+      min-height: 2rem;
+    }
+
+    .btn-clear-selection {
+      padding: 0.3rem 0.5rem;
+      border: none;
+      border-radius: 6px;
+      background: #3a1a1a;
+      color: #e8a5a5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-clear-selection:hover {
+      background: #5a2a2a;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1a1a2e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🐉 DM Control Panel</h1>
+    <div class="header-controls">
+      <div class="connection">
+        <span class="dot" id="conn-dot"></span>
+        <span id="conn-text">Connecting...</span>
+      </div>
+      <div class="mode-toggle">
+        <button class="btn-mode btn-mode--active" id="btn-mode-encounter" data-mode="encounter">Encounter</button>
+        <button class="btn-mode" id="btn-mode-exploration" data-mode="exploration">Exploration</button>
+      </div>
+      <div class="slide-controls">
+        <button class="btn-nav" id="btn-prev" title="Previous slide">⏮</button>
+        <button class="btn-nav" id="btn-next" title="Next slide">⏭</button>
+        <button class="btn-pause" id="btn-pause" title="Pause slideshow">⏸ Pause</button>
+        <label class="duration-label">
+          <input id="slide-duration" type="number" min="1" step="1" value="5" title="Seconds per slide" />
+          <span>sec</span>
+        </label>
+        <div class="slide-progress" id="slide-progress">
+          <div class="slide-progress__fill" id="slide-progress-fill"></div>
+          <span class="slide-progress__label" id="slide-progress-label">0s</span>
+        </div>
+      </div>
+      <button class="btn-start" id="btn-start" title="Start encounter">▶ Start</button>
+      <button class="btn-refresh" id="btn-refresh" title="Reload images">⟳ Refresh</button>
+      <label class="kb-toggle">
+        <input type="checkbox" id="kb-toggle" />
+        Ken Burns
+      </label>
+      <button class="btn-hide" id="btn-hide">👁 Hide</button>
+      <button class="btn-clear" id="btn-clear">✕ Clear</button>
+    </div>
+  </header>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search..." autocomplete="off" />
+  </div>
+
+  <div class="current-preview empty" id="current-preview">
+    <img id="preview-img" src="" alt="" />
+    <div class="info">
+      <div class="label">Now Showing</div>
+      <div class="name" id="preview-name">Nothing selected</div>
+    </div>
+  </div>
+
+  <div class="selected-list" id="selected-list">
+    <div class="selected-header">
+      <div class="label">Selected Encounter</div>
+      <button class="btn-clear-selection" id="btn-clear-selection" title="Clear selection">✕ Clear</button>
+    </div>
+    <div class="selected-items" id="selected-items">(No monsters selected)</div>
+  </div>
+
+  <div class="item-grid" id="item-grid"></div>
+
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="icon">📂</div>
+    <p>No monster images found.<br>
+      Drop image files into the <code>monsters/</code> folder and click <strong>⟳ Refresh</strong>.<br><br>
+      Supports: PNG, JPG, GIF, WebP, SVG<br>
+      Use subfolders to organize by type!</p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/js/control.js"></script>
+</body>
+</html>

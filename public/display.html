@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>D&D Monster Display</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background: #0a0a0a;
+                color: #e0d5c1;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                overflow: hidden;
+                height: 100vh;
+                width: 100vw;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Ambient background texture */
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background:
+                    radial-gradient(ellipse at center, rgba(30, 15, 0, 0.4) 0%, transparent 70%),
+                    radial-gradient(ellipse at 20% 80%, rgba(80, 20, 20, 0.15) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(20, 20, 80, 0.1) 0%, transparent 50%);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            #display-container {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                width: 100vw;
+                transition: opacity 0.8s ease;
+            }
+
+            #display-container.hidden {
+                opacity: 0;
+            }
+
+            /* Idle state */
+            #idle-screen {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+                opacity: 0.4;
+            }
+
+            #idle-screen .dragon-icon {
+                font-size: 5rem;
+                filter: grayscale(0.5);
+            }
+
+            #idle-screen .idle-text {
+                font-size: 1.5rem;
+                letter-spacing: 0.3em;
+                text-transform: uppercase;
+                color: #7a6f5f;
+            }
+
+            /* Item display */
+            #item-display {
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                width: 100vw;
+                padding: 2rem;
+            }
+
+            #item-display.active {
+                display: flex;
+            }
+
+            #item-image-wrapper {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                min-height: 0;
+                position: relative;
+            }
+
+            #item-image {
+                max-width: 90vw;
+                max-height: 80vh;
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow:
+                    0 0 60px rgba(0, 0, 0, 0.8),
+                    0 0 120px rgba(139, 69, 19, 0.15);
+            }
+
+            #item-image.fade {
+                animation: fadeIn 0.8s ease-out;
+            }
+
+            #item-image.cover {
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                max-height: none;
+                object-fit: cover;
+                border-radius: 0;
+                z-index: 0;
+            }
+
+            #item-image.kenburns {
+                animation: kenburns 22s ease-in-out infinite alternate;
+                transform-origin: center center;
+                will-change: transform;
+                filter: brightness(1.06);
+                box-shadow:
+                    0 0 80px rgba(255, 220, 180, 0.25),
+                    0 0 140px rgba(255, 220, 160, 0.15);
+            }
+
+            @keyframes kenburns {
+                0% {
+                    transform: scale(1) translate(0, 0) rotate(0deg);
+                }
+                50% {
+                    transform: scale(1.25) translate(-8%, -8%) rotate(-0.8deg);
+                }
+                100% {
+                    transform: scale(1.4) translate(-16%, -16%) rotate(0.8deg);
+                }
+            }
+
+            #item-name .progress-indicator {
+                font-size: 1.6rem;
+                opacity: 0.7;
+                margin-left: 0.3em;
+                font-weight: 400;
+            }
+
+            #item-name {
+                margin-top: 1.5rem;
+                font-size: 3rem;
+                font-weight: 700;
+                text-align: center;
+                letter-spacing: 0.05em;
+                color: #e8d5b5;
+                text-shadow:
+                    0 0 20px rgba(139, 69, 19, 0.4),
+                    0 2px 4px rgba(0, 0, 0, 0.8);
+                animation: fadeIn 0.8s ease-out 0.2s both;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95) translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+
+            /* Connection status */
+            #connection-status {
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #4a4a4a;
+                z-index: 10;
+                transition: background 0.3s;
+            }
+
+            #connection-status.connected {
+                background: #2d5a1e;
+            }
+
+            #connection-status.disconnected {
+                background: #8b1a1a;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="connection-status"></div>
+
+        <div id="display-container">
+            <div id="idle-screen">
+                <div class="dragon-icon">🐉</div>
+                <div class="idle-text">Awaiting Encounter</div>
+            </div>
+
+            <div id="item-display">
+                <div id="item-image-wrapper">
+                    <img id="item-image" src="" alt="" />
+                </div>
+                <div id="item-name"></div>
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/js/displayState.js"></script>
+        <script src="/js/display.js" defer></script>
+    </body>
+</html>
