@@ -10,8 +10,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = 3001;
-const MONSTERS_DIR = path.join(__dirname, "monsters");
-const ENV_DIR = path.join(__dirname, "environments");
+// Allow Electron (or any other host) to redirect data dirs to a writable location
+const MONSTERS_DIR = process.env.MONSTERS_DIR || path.join(__dirname, "monsters");
+const ENV_DIR = process.env.ENVIRONMENTS_DIR || path.join(__dirname, "environments");
 
 // Ensure monsters & environments directories exist
 for (const dir of [MONSTERS_DIR, ENV_DIR]) {

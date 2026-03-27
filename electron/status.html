@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D&D Slides</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 28px 24px 24px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #c9a84c;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      font-size: 0.85rem;
+      color: #6dbf6d;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6dbf6d;
+      flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    .urls { display: flex; flex-direction: column; gap: 12px; }
+
+    .url-row { display: flex; flex-direction: column; gap: 4px; }
+
+    .url-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #888;
+    }
+
+    .url-value {
+      background: #2a2a4a;
+      border: 1px solid #3a3a6a;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: #a0c4ff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .url-value:hover { background: #363660; }
+
+    .hint {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid #2a2a4a;
+      font-size: 0.75rem;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .hint .path {
+      display: block;
+      margin-top: 4px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: #888;
+      word-break: break-all;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐉 D&amp;D Slides</h1>
+
+  <div class="status">
+    <div class="dot"></div>
+    Server running
+  </div>
+
+  <div class="urls">
+    <div class="url-row">
+      <div class="url-label">DM Control Panel — open on your phone</div>
+      <div class="url-value" id="dm-url"></div>
+    </div>
+    <div class="url-row">
+      <div class="url-label">TV Display — open in a browser on the TV/PC</div>
+      <div class="url-value" id="display-url"></div>
+    </div>
+  </div>
+
+  <p class="hint">
+    Drop monster &amp; environment images into:
+    <span class="path" id="data-dir"></span>
+  </p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const ip   = params.get("ip");
+    const port = params.get("port");
+
+    const dmUrl      = `http://${ip}:${port}/dm`;
+    const displayUrl = `http://${ip}:${port}/`;
+
+    document.getElementById("dm-url").textContent      = dmUrl;
+    document.getElementById("display-url").textContent = displayUrl;
+
+    document.getElementById("dm-url").addEventListener("click", () => {
+      window.open(dmUrl, "_blank");
+    });
+    document.getElementById("display-url").addEventListener("click", () => {
+      window.open(displayUrl, "_blank");
+    });
+
+    const dataDir = params.get("dataDir");
+    if (dataDir) {
+      // Show parent folder (the userData dir), so the user can find both
+      // monsters/ and environments/ in one place
+      const parent = dataDir.replace(/[\\/][^\\/]+$/, "");
+      document.getElementById("data-dir").textContent = parent;
+    }
+  </script>
+</body>
+</html>
