@@ -1,56 +1,11 @@
 const { app, BrowserWindow, shell, Tray, Menu, nativeImage } = require("electron");
 const path = require("path");
 const os = require("os");
-const zlib = require("zlib");
 
 const PORT = 3001;
 
 let statusWindow = null;
 let tray = null;
-
-// Generate a solid-colour PNG so we don't need an external icon file.
-function createSolidPng(width, height, r, g, b) {
-  function crc32(buf) {
-    let crc = 0xffffffff;
-    for (let i = 0; i < buf.length; i++) {
-      crc ^= buf[i];
-      for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
-    }
-    return (crc ^ 0xffffffff) >>> 0;
-  }
-
-  function chunk(type, data) {
-    const typeBytes = Buffer.from(type, "ascii");
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length);
-    const crcVal = Buffer.alloc(4);
-    crcVal.writeUInt32BE(crc32(Buffer.concat([typeBytes, data])));
-    return Buffer.concat([len, typeBytes, data, crcVal]);
-  }
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // RGB colour type
-
-  const rowSize = 1 + width * 3;
-  const raw = Buffer.alloc(height * rowSize);
-  for (let y = 0; y < height; y++) {
-    raw[y * rowSize] = 0; // filter: None
-    for (let x = 0; x < width; x++) {
-      const p = y * rowSize + 1 + x * 3;
-      raw[p] = r; raw[p + 1] = g; raw[p + 2] = b;
-    }
-  }
-
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), // PNG signature
-    chunk("IHDR", ihdr),
-    chunk("IDAT", zlib.deflateSync(raw)),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
-}
 
 function getLocalIp() {
   return (
@@ -95,8 +50,7 @@ function createStatusWindow() {
 }
 
 function createTray() {
-  const iconBuffer = createSolidPng(16, 16, 139, 0, 0); // dark red
-  const icon = nativeImage.createFromBuffer(iconBuffer);
+  const icon = nativeImage.createFromPath(path.join(__dirname, "icon.png"));
   tray = new Tray(icon);
   tray.setToolTip("D&D Slides");
 
