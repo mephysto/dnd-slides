@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-mac:
     runs-on: macos-latest
@@ -22,13 +25,15 @@ jobs:
 
       - name: Build macOS DMG
         run: npm run dist -- --mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: DnD-Slides-macOS
-          path: dist/*.dmg
-          retention-days: 30
+          files: dist/*.dmg
+          draft: false
+          prerelease: false
 
   build-windows:
     runs-on: windows-latest
@@ -45,10 +50,12 @@ jobs:
 
       - name: Build Windows installer
         run: npm run dist -- --win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: DnD-Slides-Windows
-          path: dist/*.exe
-          retention-days: 30
+          files: dist/*.exe
+          draft: false
+          prerelease: false
