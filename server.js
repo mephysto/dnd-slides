@@ -10,21 +10,26 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = 3001;
-// Allow Electron (or any other host) to redirect data dirs to a writable location
-const MONSTERS_DIR = process.env.MONSTERS_DIR || path.join(__dirname, "monsters");
-const ENV_DIR = process.env.ENVIRONMENTS_DIR || path.join(__dirname, "environments");
+// Allow Electron (or any other host) to redirect data dirs to a writable location.
+// These are `let` so Electron can call updateDirs() after the user picks a folder.
+let MONSTERS_DIR = process.env.MONSTERS_DIR || path.join(__dirname, "monsters");
+let ENV_DIR = process.env.ENVIRONMENTS_DIR || path.join(__dirname, "environments");
 
-// Ensure monsters & environments directories exist
-for (const dir of [MONSTERS_DIR, ENV_DIR]) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+function ensureDirs() {
+  for (const dir of [MONSTERS_DIR, ENV_DIR]) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
 }
 
+ensureDirs();
+
 // Serve static files
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/monsters", express.static(MONSTERS_DIR));
-app.use("/environments", express.static(ENV_DIR));
+app.use("/nprogress", express.static(path.join(__dirname, "node_modules/nprogress")));
+// Wrap in a function so the middleware always reads the current dir value,
+// allowing Electron to swap the folder at runtime without restarting.
+app.use("/monsters", (req, res, next) => express.static(MONSTERS_DIR)(req, res, next));
+app.use("/environments", (req, res, next) => express.static(ENV_DIR)(req, res, next));
 
 // TV display page
 app.get("/", (req, res) => {
@@ -151,6 +156,15 @@ io.on("connection", (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
   });
 });
+
+// Called by Electron when the user picks a new folder in the status window
+function updateDirs({ monstersDir, environmentsDir }) {
+  if (monstersDir) MONSTERS_DIR = monstersDir;
+  if (environmentsDir) ENV_DIR = environmentsDir;
+  ensureDirs();
+}
+
+module.exports = { updateDirs };
 
 server.listen(PORT, () => {
   const os = require("os");

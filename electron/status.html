@@ -44,18 +44,26 @@
       50%       { opacity: 0.35; }
     }
 
-    .urls { display: flex; flex-direction: column; gap: 12px; }
+    .rows { display: flex; flex-direction: column; gap: 12px; }
 
-    .url-row { display: flex; flex-direction: column; gap: 4px; }
+    .row { display: flex; flex-direction: column; gap: 4px; }
 
-    .url-label {
+    .row-label {
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.07em;
       color: #888;
     }
 
+    .url-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .url-value {
+      flex: 1;
+      min-width: 0;
       background: #2a2a4a;
       border: 1px solid #3a3a6a;
       border-radius: 6px;
@@ -63,30 +71,71 @@
       font-size: 0.85rem;
       font-family: "SF Mono", "Fira Code", monospace;
       color: #a0c4ff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .open-btn {
+      flex-shrink: 0;
+      background: #2a2a4a;
+      border: 1px solid #3a3a6a;
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: #a0c4ff;
       cursor: pointer;
       transition: background 0.15s;
+      line-height: 1;
+      font-size: 1rem;
     }
 
-    .url-value:hover { background: #363660; }
+    .open-btn:hover { background: #363660; }
 
-    .hint {
-      margin-top: 22px;
-      padding-top: 16px;
+    .divider {
+      margin: 18px 0;
+      border: none;
       border-top: 1px solid #2a2a4a;
-      font-size: 0.75rem;
-      color: #666;
-      line-height: 1.6;
     }
 
-    .hint .path {
-      display: block;
-      margin-top: 4px;
+    .folder-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .folder-path {
+      flex: 1;
+      min-width: 0;
+      background: #2a2a4a;
+      border: 1px solid #3a3a6a;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 0.8rem;
       font-family: "SF Mono", "Fira Code", monospace;
       color: #888;
-      word-break: break-all;
-      -webkit-user-select: text;
-      user-select: text;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: default;
     }
+
+    .folder-path.chosen { color: #a0c4ff; }
+
+    .choose-btn {
+      flex-shrink: 0;
+      background: #2a2a4a;
+      border: 1px solid #3a3a6a;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 0.8rem;
+      color: #c9a84c;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .choose-btn:hover { background: #363660; }
+    .choose-btn:disabled { opacity: 0.4; cursor: default; }
   </style>
 </head>
 <body>
@@ -97,21 +146,41 @@
     Server running
   </div>
 
-  <div class="urls">
-    <div class="url-row">
-      <div class="url-label">DM Control Panel — open on your phone</div>
-      <div class="url-value" id="dm-url"></div>
+  <div class="rows">
+    <div class="row">
+      <div class="row-label">DM Control Panel — open on your phone</div>
+      <div class="url-row">
+        <div class="url-value" id="dm-url"></div>
+        <button class="open-btn" id="open-dm" title="Open in browser">&#x2197;</button>
+      </div>
     </div>
-    <div class="url-row">
-      <div class="url-label">TV Display — open in a browser on the TV/PC</div>
-      <div class="url-value" id="display-url"></div>
+    <div class="row">
+      <div class="row-label">TV Display — open in a browser on the TV/PC</div>
+      <div class="url-row">
+        <div class="url-value" id="display-url"></div>
+        <button class="open-btn" id="open-display" title="Open in browser">&#x2197;</button>
+      </div>
     </div>
   </div>
 
-  <p class="hint">
-    Drop monster &amp; environment images into:
-    <span class="path" id="data-dir"></span>
-  </p>
+  <hr class="divider">
+
+  <div class="rows">
+    <div class="row">
+      <div class="row-label">Monsters folder</div>
+      <div class="folder-row">
+        <div class="folder-path" id="monsters-path">Not set</div>
+        <button class="choose-btn" id="choose-monsters">Choose…</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-label">Environments folder</div>
+      <div class="folder-row">
+        <div class="folder-path" id="environments-path">Not set</div>
+        <button class="choose-btn" id="choose-environments">Choose…</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -124,20 +193,44 @@
     document.getElementById("dm-url").textContent      = dmUrl;
     document.getElementById("display-url").textContent = displayUrl;
 
-    document.getElementById("dm-url").addEventListener("click", () => {
+    document.getElementById("open-dm").addEventListener("click", () => {
       window.open(dmUrl, "_blank");
     });
-    document.getElementById("display-url").addEventListener("click", () => {
+    document.getElementById("open-display").addEventListener("click", () => {
       window.open(displayUrl, "_blank");
     });
 
-    const dataDir = params.get("dataDir");
-    if (dataDir) {
-      // Show parent folder (the userData dir), so the user can find both
-      // monsters/ and environments/ in one place
-      const parent = dataDir.replace(/[\\/][^\\/]+$/, "");
-      document.getElementById("data-dir").textContent = parent;
+    function setPath(elId, value) {
+      const el = document.getElementById(elId);
+      if (value) {
+        el.textContent = value;
+        el.classList.add("chosen");
+      } else {
+        el.textContent = "Not set";
+        el.classList.remove("chosen");
+      }
     }
+
+    setPath("monsters-path", params.get("monstersDir"));
+    setPath("environments-path", params.get("environmentsDir"));
+
+    async function pickFolder(type, pathElId, btnEl) {
+      btnEl.disabled = true;
+      try {
+        const chosen = await window.electronAPI.chooseFolder(type);
+        if (chosen) setPath(pathElId, chosen);
+      } finally {
+        btnEl.disabled = false;
+      }
+    }
+
+    document.getElementById("choose-monsters").addEventListener("click", (e) => {
+      pickFolder("monsters", "monsters-path", e.currentTarget);
+    });
+
+    document.getElementById("choose-environments").addEventListener("click", (e) => {
+      pickFolder("environments", "environments-path", e.currentTarget);
+    });
   </script>
 </body>
 </html>

@@ -19,8 +19,6 @@ const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
 const btnPause = document.getElementById('btn-pause');
 const slideDurationInput = document.getElementById('slide-duration');
-const slideProgressFill = document.getElementById('slide-progress-fill');
-const slideProgressLabel = document.getElementById('slide-progress-label');
 const btnClearSelection = document.getElementById('btn-clear-selection');
 const kbToggle = document.getElementById('kb-toggle');
 const btnHide = document.getElementById('btn-hide');
@@ -57,7 +55,7 @@ let currentSlideCount = 0;
 let currentSlideDuration = 5000;
 let isPaused = false;
 
-const progress = createSlideProgress(slideProgressFill, slideProgressLabel);
+const progress = createSlideProgress();
 
 // Connection status
 socket.on('connect', () => {

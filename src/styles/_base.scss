@@ -1,0 +1,19 @@
+@font-face {
+    font-family: 'Majesty Black';
+    src: url('/fonts/Majesty-Black.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+$font-family-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$font-family-display: 'Majesty Black', serif;
+$color-text: #e0d5c1;
+$color-accent: #8b4513;
+$color-accent-gold: #d4a24e;
+$color-accent-blue: #5aaaff;
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}

@@ -1,6 +1,7 @@
-const { app, BrowserWindow, shell, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, shell, Tray, Menu, nativeImage, ipcMain, dialog } = require("electron");
 const path = require("path");
 const os = require("os");
+const config = require("./config");
 
 const PORT = 3001;
 
@@ -19,22 +20,23 @@ function getLocalIp() {
 function createStatusWindow() {
   statusWindow = new BrowserWindow({
     width: 460,
-    height: 380,
+    height: 430,
     resizable: false,
     title: "D&D Slides",
     webPreferences: {
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
   const localIp = getLocalIp();
-  const userData = app.getPath("userData");
 
   statusWindow.loadFile(path.join(__dirname, "status.html"), {
     query: {
       ip: localIp,
       port: String(PORT),
-      dataDir: path.join(userData, "monsters"),
+      monstersDir: config.getMonstersDir(""),
+      environmentsDir: config.getEnvironmentsDir(""),
     },
   });
 
@@ -75,12 +77,41 @@ function createTray() {
   });
 }
 
+ipcMain.handle("open-folder", (_event, folderPath) => {
+  shell.openPath(folderPath);
+});
+
+async function chooseFolder(type) {
+  const { canceled, filePaths } = await dialog.showOpenDialog(statusWindow, {
+    properties: ["openDirectory"],
+    title: type === "monsters" ? "Choose Monsters Folder" : "Choose Environments Folder",
+  });
+
+  if (canceled || filePaths.length === 0) return null;
+
+  const chosen = filePaths[0];
+  const server = require("../server");
+
+  if (type === "monsters") {
+    config.setMonstersDir(chosen);
+    server.updateDirs({ monstersDir: chosen });
+  } else {
+    config.setEnvironmentsDir(chosen);
+    server.updateDirs({ environmentsDir: chosen });
+  }
+
+  return chosen;
+}
+
+ipcMain.handle("choose-folder", (_event, type) => chooseFolder(type));
+
 app.whenReady().then(() => {
-  // Point the server at the user's writable data folder so monster images
-  // survive app updates and can be managed from Finder.
   const userData = app.getPath("userData");
-  process.env.MONSTERS_DIR = path.join(userData, "monsters");
-  process.env.ENVIRONMENTS_DIR = path.join(userData, "environments");
+
+  // Load persisted folder prefs, falling back to the userData defaults
+  config.init(userData);
+  process.env.MONSTERS_DIR = config.getMonstersDir(path.join(userData, "monsters"));
+  process.env.ENVIRONMENTS_DIR = config.getEnvironmentsDir(path.join(userData, "environments"));
 
   // Boot the Express + Socket.IO server
   require("../server");
