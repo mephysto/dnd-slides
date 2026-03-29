@@ -1,38 +1,33 @@
-// Manages the slide progress bar shown in the control panel.
-// Usage:
-//   const progress = createSlideProgress(fillElement, labelElement);
-//   progress.reset(durationMs);
-//   progress.pause();
-//   progress.resume();
-//
-export function createSlideProgress(fillEl, labelEl) {
+// Drives the NProgress top bar as a slide timer.
+// NProgress is loaded as a global via script tag in control.html.
+export function createSlideProgress() {
   let raf = null;
   let start = 0;
   let duration = 0;
   let paused = false;
 
-  const rafFn = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
-  const cancelRaf = typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : (id) => clearTimeout(id);
+  NProgress.configure({ showSpinner: false, trickle: false, minimum: 0 });
+
+  const rafFn    = typeof requestAnimationFrame  === 'function' ? requestAnimationFrame  : (cb) => setTimeout(cb, 16);
+  const cancelRaf = typeof cancelAnimationFrame  === 'function' ? cancelAnimationFrame  : (id) => clearTimeout(id);
 
   const update = () => {
-    if (!fillEl || !labelEl) return;
-    const elapsed = Date.now() - start;
-    const progress = Math.min(1, Math.max(0, elapsed / duration));
+    const elapsed  = Date.now() - start;
+    const fraction = Math.min(1, Math.max(0, elapsed / duration));
 
-    fillEl.style.width = `${progress * 100}%`;
-    const remainingMs = Math.max(0, duration - elapsed);
-    labelEl.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+    NProgress.set(fraction);
 
-    if (progress < 1 && !paused) {
+    if (fraction < 1 && !paused) {
       raf = rafFn(update);
     }
   };
 
   const reset = (ms) => {
     duration = Math.max(0, Number(ms) || 0);
-    start = Date.now();
-    paused = false;
+    start    = Date.now();
+    paused   = false;
     cancelRaf(raf);
+    NProgress.set(0);
     if (duration > 0) {
       raf = rafFn(update);
     }
@@ -46,7 +41,7 @@ export function createSlideProgress(fillEl, labelEl) {
   const resume = () => {
     if (!paused) return;
     paused = false;
-    start = Date.now();
+    start  = Date.now();
     cancelRaf(raf);
     raf = rafFn(update);
   };
@@ -54,6 +49,7 @@ export function createSlideProgress(fillEl, labelEl) {
   const stop = () => {
     paused = true;
     cancelRaf(raf);
+    NProgress.done();
   };
 
   return { reset, pause, resume, stop };
