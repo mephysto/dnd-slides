@@ -39,25 +39,21 @@ export function createControlRenderer(dom) {
     renderSelectedList({ mode, selectedEnvironment, selectedMonsters });
   }
 
-  function updateHideButton(isHidden) {
-    dom.btnHide.classList.toggle("active", isHidden);
-    dom.btnHide.textContent = isHidden ? "👁 Reveal" : "👁 Hide";
-  }
-
-  function updateModeButtons(mode) {
-    dom.btnModeEncounter.classList.toggle("btn-mode--active", mode === "encounter");
-    dom.btnModeExploration.classList.toggle("btn-mode--active", mode === "exploration");
+  function updateModeToggle(mode) {
+    dom.modeToggle.checked = mode === "encounter";
+    dom.modeToggleLabel.textContent = mode === "encounter" ? "Encounter" : "Exploration";
     const label = mode === "exploration" ? "Selected Environment" : "Selected Encounter";
     document.querySelector(".selected-header .label").textContent = label;
   }
 
-  function updateSlideControls({ isPaused, currentSlideCount }) {
+  function updateSlideControls({ isPaused, currentSlideCount, hasActive }) {
     const hasSlides = currentSlideCount > 1;
     dom.btnPrev.disabled = !hasSlides;
     dom.btnNext.disabled = !hasSlides;
 
-    dom.btnPause.classList.toggle("active", isPaused);
-    dom.btnPause.textContent = isPaused ? "▶ Resume" : "⏸ Pause";
+    const isPlaying = hasActive && !isPaused;
+    dom.btnPlayPause.textContent = isPlaying ? "⏸" : "▶";
+    dom.btnPlayPause.classList.toggle("active", isPaused);
   }
 
   function renderGrid({ mode, filter, monsters, environments, selectedMonsters, selectedEnvironment, currentMonster, currentEnvironment }) {
@@ -114,7 +110,7 @@ export function createControlRenderer(dom) {
   }
 
   function updatePreview(props) {
-    const { mode, currentMonster, currentEnvironment, currentSlideIndex, selectedMonsters, isHidden, isPaused } = props;
+    const { mode, currentMonster, currentEnvironment, currentSlideIndex, selectedMonsters, isPaused } = props;
 
     const activeItem = mode === "exploration" ? currentEnvironment : currentMonster;
 
@@ -133,7 +129,7 @@ export function createControlRenderer(dom) {
       const pausedText = isPaused ? " (Paused)" : "";
 
       dom.previewName.textContent =
-        activeItem.name + itemProgress + slideProgress + (isHidden ? " (Hidden)" : "") + pausedText;
+        activeItem.name + itemProgress + slideProgress + pausedText;
       dom.currentPreview.classList.remove("empty");
     } else {
       dom.previewImg.src = "";
@@ -147,8 +143,7 @@ export function createControlRenderer(dom) {
     attachGridListeners,
     updatePreview,
     updateSelectedCard,
-    updateHideButton,
-    updateModeButtons,
+    updateModeToggle,
     updateSlideControls,
   };
 }

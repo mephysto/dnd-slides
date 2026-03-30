@@ -12,17 +12,14 @@ const previewName = document.getElementById('preview-name');
 const currentPreview = document.getElementById('current-preview');
 const connDot = document.getElementById('conn-dot');
 const connText = document.getElementById('conn-text');
-const btnModeEncounter = document.getElementById('btn-mode-encounter');
-const btnModeExploration = document.getElementById('btn-mode-exploration');
-const btnStart = document.getElementById('btn-start');
+const modeToggle = document.getElementById('mode-toggle');
+const modeToggleLabel = document.getElementById('mode-toggle-label');
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
-const btnPause = document.getElementById('btn-pause');
+const btnPlayPause = document.getElementById('btn-playpause');
 const slideDurationInput = document.getElementById('slide-duration');
 const btnClearSelection = document.getElementById('btn-clear-selection');
 const kbToggle = document.getElementById('kb-toggle');
-const btnHide = document.getElementById('btn-hide');
-const btnClear = document.getElementById('btn-clear');
 const btnRefresh = document.getElementById('btn-refresh');
 const selectedItems = document.getElementById('selected-items');
 
@@ -32,12 +29,11 @@ const renderer = createControlRenderer({
     previewImg,
     previewName,
     currentPreview,
-    btnHide,
-    btnModeEncounter,
-    btnModeExploration,
+    modeToggle,
+    modeToggleLabel,
     btnPrev,
     btnNext,
-    btnPause,
+    btnPlayPause,
     selectedItems,
 });
 
@@ -49,7 +45,6 @@ let selectedEnvironment = null;
 let currentMonster = null;
 let currentEnvironment = null;
 let currentMonsterIndex = 0;
-let isHidden = false;
 let currentSlideIndex = 0;
 let currentSlideCount = 0;
 let currentSlideDuration = 5000;
@@ -80,7 +75,6 @@ socket.on('state', (state) => {
     currentEnvironment = state.environment || null;
     selectedEnvironment = currentEnvironment;
 
-    isHidden = !state.visible;
     currentSlideIndex = Number(state.slideIndex) || 0;
     currentSlideDuration = Number(state.slideDuration) || 10_000;
     isPaused = Boolean(state.paused);
@@ -96,25 +90,13 @@ socket.on('state', (state) => {
 
     // Reset slide progress timer whenever state updates
     if (isPaused) {
-      stopSlideProgress();
+        progress.pause();
     } else {
-      resetSlideProgress();
+        progress.reset(currentSlideDuration);
     }
 
     refreshUI();
 });
-
-function resetSlideProgress() {
-    progress.reset(currentSlideDuration);
-}
-
-function startSlideProgress() {
-    progress.reset(currentSlideDuration);
-}
-
-function stopSlideProgress() {
-    progress.pause();
-}
 
 // Load monsters
 async function loadMonsters() {
@@ -138,14 +120,15 @@ async function loadEnvironments() {
 }
 
 function refreshUI() {
-    renderer.updateModeButtons(mode);
+    const hasActive = mode === 'exploration' ? currentEnvironment !== null : currentMonster !== null;
+
+    renderer.updateModeToggle(mode);
     renderer.updatePreview({
         mode,
         currentMonster,
         currentEnvironment,
         currentSlideIndex,
         selectedMonsters,
-        isHidden,
         isPaused,
     });
     renderer.updateSelectedCard({
@@ -155,8 +138,7 @@ function refreshUI() {
         selectedEnvironment,
         selectedMonsters,
     });
-    renderer.updateHideButton(isHidden);
-    renderer.updateSlideControls({ isPaused, currentSlideCount });
+    renderer.updateSlideControls({ isPaused, currentSlideCount, hasActive });
 
     renderer.renderGrid({
         mode,
@@ -193,10 +175,10 @@ function handleGridItemClick(item) {
 
 function setMode(newMode) {
     mode = newMode;
-    btnModeEncounter.classList.toggle('btn-mode--active', mode === 'encounter');
-    btnModeExploration.classList.toggle('btn-mode--active', mode === 'exploration');
-    const label = mode === 'exploration' ? 'Selected Environment' : 'Selected Encounter';
-    document.querySelector('.selected-header .label').textContent = label;
+    modeToggle.checked = mode === 'encounter';
+    modeToggleLabel.textContent = mode === 'encounter' ? 'Encounter' : 'Exploration';
+    document.querySelector('.selected-header .label').textContent =
+        mode === 'exploration' ? 'Selected Environment' : 'Selected Encounter';
 
     // Reset selections for the other mode when switching
     if (mode === 'exploration') {
@@ -215,28 +197,26 @@ function setMode(newMode) {
 }
 
 // Event listeners
-searchInput.addEventListener('input', (e) => {
+searchInput.addEventListener('input', () => {
     refreshUI();
 });
 
-btnStart.addEventListener('click', () => {
-    if (mode === 'exploration') {
-        if (!selectedEnvironment) return;
+modeToggle.addEventListener('change', () => {
+    const newMode = modeToggle.checked ? 'encounter' : 'exploration';
+    setMode(newMode);
+    socket.emit('set-mode', newMode);
+});
+
+// Play/pause button doubles as the start button when nothing is active
+btnPlayPause.addEventListener('click', () => {
+    const hasActive = mode === 'exploration' ? currentEnvironment !== null : currentMonster !== null;
+    if (hasActive) {
+        socket.emit('toggle-pause');
+    } else if (mode === 'exploration' && selectedEnvironment) {
         socket.emit('show-environment', selectedEnvironment);
-    } else {
-        if (selectedMonsters.length === 0) return;
+    } else if (mode === 'encounter' && selectedMonsters.length > 0) {
         socket.emit('show-monsters', selectedMonsters);
     }
-});
-
-btnModeEncounter.addEventListener('click', () => {
-    setMode('encounter');
-    socket.emit('set-mode', 'encounter');
-});
-
-btnModeExploration.addEventListener('click', () => {
-    setMode('exploration');
-    socket.emit('set-mode', 'exploration');
 });
 
 btnPrev.addEventListener('click', () => {
@@ -247,10 +227,6 @@ btnNext.addEventListener('click', () => {
     socket.emit('next-slide');
 });
 
-btnPause.addEventListener('click', () => {
-    socket.emit('toggle-pause');
-});
-
 slideDurationInput.addEventListener('change', () => {
     const seconds = Number(slideDurationInput.value);
     if (seconds > 0) {
@@ -259,7 +235,6 @@ slideDurationInput.addEventListener('change', () => {
 });
 
 kbToggle.addEventListener('change', () => {
-    console.log('Ken Burns toggle:', kbToggle.checked);
     socket.emit('set-kenburns', kbToggle.checked);
 });
 
@@ -267,14 +242,6 @@ btnClearSelection.addEventListener('click', () => {
     selectedMonsters = [];
     selectedEnvironment = null;
     socket.emit('clear');
-    refreshUI();
-});
-
-btnClear.addEventListener('click', () => {
-    socket.emit('clear');
-    selectedMonsters = [];
-    selectedEnvironment = null;
-    searchInput.value = '';
     refreshUI();
 });
 
