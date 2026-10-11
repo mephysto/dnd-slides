@@ -1,5 +1,26 @@
 // Rendering helpers for the DM control panel.
 
+// Decides what the play/pause button does when pressed: "start" (send the
+// selection to the display), "pause", "resume", or "none" (nothing to play).
+// Shared by the click handler and the icon so the two cannot disagree.
+// A stopped (blanked) display counts as resumable even if the timer is running,
+// so play is always the way back from stop.
+export function getPlayPauseAction({ mode, activeMonsters, activeEnvironment, selectedMonsters, selectedEnvironment, isPaused, isStopped = false }) {
+  const isExploration = mode === "exploration";
+  const hasActive = isExploration ? Boolean(activeEnvironment) : activeMonsters.length > 0;
+  const hasSelection = isExploration ? Boolean(selectedEnvironment) : selectedMonsters.length > 0;
+
+  // Order matters for monsters: it is the order the server plays them in.
+  const selectionMatchesActive = isExploration
+    ? selectedEnvironment?.name === activeEnvironment?.name
+    : selectedMonsters.length === activeMonsters.length &&
+      selectedMonsters.every((m, idx) => m.name === activeMonsters[idx].name);
+
+  if (hasSelection && (!hasActive || !selectionMatchesActive)) return "start";
+  if (!hasActive) return "none";
+  return isPaused || isStopped ? "resume" : "pause";
+}
+
 export function createControlRenderer(dom) {
   function renderSelectedList({ mode, selectedEnvironment, selectedMonsters }) {
     if (mode === "exploration") {
@@ -46,14 +67,16 @@ export function createControlRenderer(dom) {
     document.querySelector(".selected-header .label").textContent = label;
   }
 
-  function updateSlideControls({ isPaused, currentSlideCount, hasActive }) {
+  function updateSlideControls({ isPaused, isStopped = false, hasActive = false, currentSlideCount, playPauseAction }) {
     const hasSlides = currentSlideCount > 1;
     dom.btnPrev.disabled = !hasSlides;
     dom.btnNext.disabled = !hasSlides;
 
-    const isPlaying = hasActive && !isPaused;
-    dom.btnPlayPause.textContent = isPlaying ? "⏸" : "▶";
+    dom.btnPlayPause.textContent = playPauseAction === "pause" ? "⏸" : "▶";
     dom.btnPlayPause.classList.toggle("active", isPaused);
+
+    dom.btnStop.disabled = !hasActive;
+    dom.btnStop.classList.toggle("active", hasActive && isStopped);
   }
 
   function renderGrid({ mode, filter, monsters, environments, selectedMonsters, selectedEnvironment, currentMonster, currentEnvironment }) {
@@ -110,7 +133,7 @@ export function createControlRenderer(dom) {
   }
 
   function updatePreview(props) {
-    const { mode, currentMonster, currentEnvironment, currentSlideIndex, selectedMonsters, isPaused } = props;
+    const { mode, currentMonster, currentEnvironment, currentSlideIndex, selectedMonsters, isPaused, isStopped } = props;
 
     const activeItem = mode === "exploration" ? currentEnvironment : currentMonster;
 
@@ -126,7 +149,7 @@ export function createControlRenderer(dom) {
         mode === "encounter" && selectedMonsters.length > 1
           ? ` [${currentMonster ? selectedMonsters.findIndex((m) => m.name === currentMonster.name) + 1 : 1}/${selectedMonsters.length}]`
           : "";
-      const pausedText = isPaused ? " (Paused)" : "";
+      const pausedText = isStopped ? " (Stopped)" : isPaused ? " (Paused)" : "";
 
       dom.previewName.textContent =
         activeItem.name + itemProgress + slideProgress + pausedText;

@@ -5,31 +5,34 @@ body.control {
     color: $color-text;
     font-family: $font-family-ui;
     min-height: 100vh;
+    // Column layout so the sticky play-bar sits at the bottom of the screen
+    // even when the content is shorter than the viewport.
+    display: flex;
+    flex-direction: column;
 }
 
-// Two-row (mobile) vs single-row (desktop) header heights.
-// Used to keep .search-bar sticky offset in sync.
-$header-height-two-row: 104px;
-$header-height-one-row:  68px;
+// Header is always single-row now — play controls moved to the bottom bar.
+// The height is fixed (not left to content) because .search-bar sticks
+// directly beneath it and needs to know exactly where the header ends.
+$header-height: 56px;
+$header-height-desktop: 68px;
 
 header {
     background: #16213e;
     border-bottom: 2px solid $color-accent;
-    padding: 0.75rem 1rem;
+    padding: 0 1rem;
+    height: $header-height;
+    flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
 .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    display: contents;
 
     h1 {
         font-size: 1.3rem;
@@ -38,34 +41,7 @@ header {
         align-items: center;
         gap: 0.5rem;
         font-family: $font-family-display;
-        flex-shrink: 0;
     }
-}
-
-.header-top__actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.header-bottom {
-    display: flex;
-    align-items: center;
-}
-
-.header-controls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-// Secondary controls deprioritised on small screens — still tappable, just visually quieter
-.kb-toggle,
-.btn-refresh {
-    opacity: 0.6;
-    order: 10;
 }
 
 button {
@@ -78,70 +54,12 @@ button {
     transition: all 0.2s;
 }
 
-.btn-hide {
-    background: #4a3520;
-    color: #e8d5b5;
-
-    &:hover {
-        background: #5a4530;
-    }
-    &.active {
-        background: $color-accent;
-        color: #fff;
-    }
-}
-
-.btn-clear {
-    background: #3a1a1a;
-    color: #e8a5a5;
-
-    &:hover {
-        background: #5a2a2a;
-    }
-}
-
-.btn-start {
-    background: #2a3a4a;
-    color: #b5e8ff;
-
-    &:hover {
-        background: #3a4a5a;
-    }
-}
-
 .btn-refresh {
     background: #1a3a2a;
     color: #a5e8b5;
 
     &:hover {
         background: #2a4a3a;
-    }
-}
-
-.mode-toggle {
-    display: flex;
-    gap: 0.35rem;
-    margin-right: 0.5rem;
-}
-
-.btn-mode {
-    padding: 0.5rem 0.75rem;
-    border: none;
-    border-radius: 6px;
-    background: #1a2a3a;
-    color: #c5d5e5;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
-    font-family: $font-family-display;
-    text-transform: uppercase;
-
-    &--active {
-        background: $color-accent-blue;
-        color: #0a0a0a;
-    }
-    &:hover {
-        background: #2a4a6a;
     }
 }
 
@@ -152,6 +70,7 @@ button {
     color: #c5d5e5;
     font-size: 0.85rem;
     font-weight: 600;
+    cursor: pointer;
 
     input {
         width: 16px;
@@ -203,25 +122,13 @@ button {
     }
 }
 
-.slide-controls {
-    display: flex;
-    gap: 0.35rem;
-    align-items: center;
-}
-
-.btn-nav,
-.btn-pause {
+.btn-nav {
     background: #2a2a3a;
     color: $color-text;
 
     &:hover {
         background: #3a3a4a;
     }
-}
-
-.btn-pause.active {
-    background: $color-accent;
-    color: #fff;
 }
 
 .duration-label {
@@ -249,7 +156,9 @@ button {
     }
 
     .peg {
-        box-shadow: 0 0 10px $color-accent-blue, 0 0 5px $color-accent-blue;
+        box-shadow:
+            0 0 10px $color-accent-blue,
+            0 0 5px $color-accent-blue;
     }
 }
 
@@ -279,7 +188,7 @@ button {
     padding: 1rem 1.5rem;
     background: #1a1a2e;
     position: sticky;
-    top: $header-height-two-row;
+    top: $header-height;
     z-index: 99;
 
     input {
@@ -390,6 +299,7 @@ button {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
+    gap: 0.5rem;
 
     .label {
         font-size: 0.75rem;
@@ -397,6 +307,7 @@ button {
         text-transform: uppercase;
         color: $color-accent;
         font-family: $font-family-display;
+        flex-grow: 1;
     }
 }
 
@@ -423,6 +334,148 @@ button {
     }
 }
 
+// Bottom bar: mode toggle + play controls + settings.
+// Sticky rather than fixed so it takes up space in the page: the bar wraps to
+// a different height on each screen width, and a fixed bar would need a
+// matching padding guess to stop it covering the last row of the grid.
+.play-bar {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    background: #16213e;
+    border-top: 2px solid $color-accent;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+    z-index: 100;
+
+    // On phones the bar is two rows: settings on top, transport buttons on the
+    // bottom row where the thumb rests.
+    .mode-switch {
+        order: 1;
+    }
+    .duration-label {
+        order: 2;
+        margin-left: auto;
+    }
+    .play-controls {
+        order: 3;
+    }
+    .kb-toggle {
+        order: 4;
+    }
+}
+
+// Mode switch: pill toggle + label in a bordered box
+.mode-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 2px solid $color-accent-blue;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+}
+
+.mode-label {
+    font-family: $font-family-display;
+    font-size: 0.9rem;
+    color: #e8d5b5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    flex-shrink: 0;
+
+    input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+}
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #2a3a4a;
+    border-radius: 22px;
+    transition: background 0.2s;
+
+    &::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #c0392b;
+
+    &::before {
+        transform: translateX(16px);
+    }
+}
+
+.play-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    justify-content: center;
+}
+
+.btn-playpause {
+    background: $color-accent-blue;
+    color: #0a0a0a;
+    font-size: 1.1rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+
+    &:hover {
+        background: #7abcff;
+    }
+
+    &.active {
+        background: $color-accent;
+        color: #fff;
+    }
+}
+
+.btn-stop {
+    background: #3a1a1a;
+    color: #e8a5a5;
+    font-size: 1.1rem;
+
+    &:hover {
+        background: #5a2a2a;
+    }
+
+    // Lit while the display is blanked, so the DM can tell at a glance
+    &.active {
+        background: #c0392b;
+        color: #fff;
+    }
+}
+
+.play-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 ::-webkit-scrollbar {
     width: 8px;
 
@@ -440,31 +493,28 @@ button {
     }
 }
 
+@media (min-width: 640px) {
+    // Wide enough for a single row, in source order
+    .play-bar {
+        .mode-switch,
+        .duration-label,
+        .play-controls,
+        .kb-toggle {
+            order: 0;
+        }
+        .duration-label {
+            margin-left: 0;
+        }
+    }
+}
+
 @media (min-width: 1024px) {
     header {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 1.5rem;
-        gap: 0;
-    }
-
-    .header-top {
-        flex-shrink: 0;
-    }
-
-    .header-bottom {
-        flex: 1;
-        justify-content: flex-end;
-    }
-
-    .kb-toggle,
-    .btn-refresh {
-        opacity: 1;
-        order: 0;
+        padding: 0 1.5rem;
+        height: $header-height-desktop;
     }
 
     .search-bar {
-        top: $header-height-one-row;
+        top: $header-height-desktop;
     }
 }

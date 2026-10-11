@@ -1,7 +1,7 @@
 // DM control panel logic (UI state + socket interactions)
 
 import { createSlideProgress } from './control/progress.js';
-import { createControlRenderer } from './control/render.js';
+import { createControlRenderer, getPlayPauseAction } from './control/render.js';
 
 const socket = io();
 const grid = document.getElementById('item-grid');
@@ -17,6 +17,7 @@ const modeToggleLabel = document.getElementById('mode-toggle-label');
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
 const btnPlayPause = document.getElementById('btn-playpause');
+const btnStop = document.getElementById('btn-stop');
 const slideDurationInput = document.getElementById('slide-duration');
 const btnClearSelection = document.getElementById('btn-clear-selection');
 const kbToggle = document.getElementById('kb-toggle');
@@ -34,6 +35,7 @@ const renderer = createControlRenderer({
     btnPrev,
     btnNext,
     btnPlayPause,
+    btnStop,
     selectedItems,
 });
 
@@ -42,6 +44,12 @@ let monsters = [];
 let environments = [];
 let selectedMonsters = [];
 let selectedEnvironment = null;
+// What the display is showing (server truth), kept apart from the selection
+// so the DM can line up a change while a slideshow is running.
+let activeMonsters = [];
+// The server re-broadcasts state on every slide advance; without this flag
+// each broadcast would wipe a selection the DM has edited but not yet played.
+let hasPendingSelection = false;
 let currentMonster = null;
 let currentEnvironment = null;
 let currentMonsterIndex = 0;
@@ -49,6 +57,8 @@ let currentSlideIndex = 0;
 let currentSlideCount = 0;
 let currentSlideDuration = 5000;
 let isPaused = false;
+// Stopped = the display is blanked but the slideshow and selection are kept
+let isStopped = false;
 
 const progress = createSlideProgress();
 
@@ -67,17 +77,23 @@ socket.on('disconnect', () => {
 socket.on('state', (state) => {
     mode = state.mode || 'encounter';
 
-    selectedMonsters = Array.isArray(state.monsters) ? state.monsters : [];
+    activeMonsters = Array.isArray(state.monsters) ? state.monsters : [];
     const monsterIndex = Number(state.monsterIndex) || 0;
-    currentMonster = selectedMonsters[monsterIndex] || null;
+    currentMonster = activeMonsters[monsterIndex] || null;
     currentMonsterIndex = monsterIndex;
 
     currentEnvironment = state.environment || null;
-    selectedEnvironment = currentEnvironment;
+
+    if (!hasPendingSelection) {
+        // Copied because grid clicks mutate the selection in place
+        selectedMonsters = [...activeMonsters];
+        selectedEnvironment = currentEnvironment;
+    }
 
     currentSlideIndex = Number(state.slideIndex) || 0;
     currentSlideDuration = Number(state.slideDuration) || 10_000;
     isPaused = Boolean(state.paused);
+    isStopped = state.visible === false;
     currentSlideCount = Array.isArray((mode === 'exploration' ? currentEnvironment : currentMonster)?.urls)
         ? mode === 'exploration'
             ? currentEnvironment.urls.length
@@ -119,8 +135,20 @@ async function loadEnvironments() {
     }
 }
 
+function playPauseAction() {
+    return getPlayPauseAction({
+        mode,
+        activeMonsters,
+        activeEnvironment: currentEnvironment,
+        selectedMonsters,
+        selectedEnvironment,
+        isPaused,
+        isStopped,
+    });
+}
+
 function refreshUI() {
-    const hasActive = mode === 'exploration' ? currentEnvironment !== null : currentMonster !== null;
+    const hasActive = mode === 'exploration' ? currentEnvironment !== null : activeMonsters.length > 0;
 
     renderer.updateModeToggle(mode);
     renderer.updatePreview({
@@ -128,8 +156,10 @@ function refreshUI() {
         currentMonster,
         currentEnvironment,
         currentSlideIndex,
-        selectedMonsters,
+        // The [n/total] counter describes the running encounter, not a pending edit
+        selectedMonsters: activeMonsters,
         isPaused,
+        isStopped,
     });
     renderer.updateSelectedCard({
         mode,
@@ -138,7 +168,13 @@ function refreshUI() {
         selectedEnvironment,
         selectedMonsters,
     });
-    renderer.updateSlideControls({ isPaused, currentSlideCount, hasActive });
+    renderer.updateSlideControls({
+        isPaused,
+        isStopped,
+        hasActive,
+        currentSlideCount,
+        playPauseAction: playPauseAction(),
+    });
 
     renderer.renderGrid({
         mode,
@@ -170,6 +206,7 @@ function handleGridItemClick(item) {
         }
     }
 
+    hasPendingSelection = true;
     refreshUI();
 }
 
@@ -186,6 +223,8 @@ function setMode(newMode) {
     } else {
         selectedEnvironment = null;
     }
+    // A mode switch abandons any unplayed edit, so follow the server again
+    hasPendingSelection = false;
 
     const emptyMessage =
         mode === 'exploration'
@@ -207,16 +246,31 @@ modeToggle.addEventListener('change', () => {
     socket.emit('set-mode', newMode);
 });
 
-// Play/pause button doubles as the start button when nothing is active
+// Play/pause button doubles as the start button when nothing is active, or
+// when the selection has changed since the slideshow started
 btnPlayPause.addEventListener('click', () => {
-    const hasActive = mode === 'exploration' ? currentEnvironment !== null : currentMonster !== null;
-    if (hasActive) {
+    const action = playPauseAction();
+    if (action === 'start') {
+        hasPendingSelection = false;
+        if (mode === 'exploration') {
+            socket.emit('show-environment', selectedEnvironment);
+        } else {
+            socket.emit('show-monsters', selectedMonsters);
+        }
+    } else if (action === 'pause') {
         socket.emit('toggle-pause');
-    } else if (mode === 'exploration' && selectedEnvironment) {
-        socket.emit('show-environment', selectedEnvironment);
-    } else if (mode === 'encounter' && selectedMonsters.length > 0) {
-        socket.emit('show-monsters', selectedMonsters);
+    } else if (action === 'resume') {
+        if (isStopped) socket.emit('reveal');
+        if (isPaused) socket.emit('toggle-pause');
     }
+});
+
+// Stop blanks the TV without losing the selection or the place in the
+// slideshow. The timer is paused too, so slides do not advance unseen.
+btnStop.addEventListener('click', () => {
+    if (isStopped) return;
+    socket.emit('hide');
+    if (!isPaused) socket.emit('toggle-pause');
 });
 
 btnPrev.addEventListener('click', () => {
@@ -241,6 +295,7 @@ kbToggle.addEventListener('change', () => {
 btnClearSelection.addEventListener('click', () => {
     selectedMonsters = [];
     selectedEnvironment = null;
+    hasPendingSelection = false;
     socket.emit('clear');
     refreshUI();
 });
