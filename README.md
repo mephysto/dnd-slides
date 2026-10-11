@@ -26,9 +26,9 @@ Requires [Node.js](https://nodejs.org) 18+.
 
 ```bash
 npm install
-npm start          # start the server
+npm run dev        # start server + SCSS watcher (recommended)
 # or
-npm run dev        # start with auto-restart on file changes
+npm start          # start server only (no auto-restart or style watching)
 ```
 
 Then open:
@@ -82,7 +82,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Download the artifacts from the **Actions** tab in your GitHub repository once the workflow completes. You can also trigger a build manually from Actions → **Build** → **Run workflow**.
+Download the installers from the **Releases** page of your GitHub repository once the workflow completes (the workflow attaches them to the release for that tag). You can also trigger a build manually from Actions → **Build** → **Run workflow**.
 
 ---
 
@@ -113,6 +113,27 @@ When running via `node server.js` directly, the local `monsters/` and `environme
 
 ---
 
+## Styles (SCSS)
+
+> **Do not edit `public/styles/styles.css` directly.** It is a compiled build artefact and will be overwritten the next time SCSS is compiled.
+
+Styles live in `src/styles/`:
+
+| File | Contents |
+|------|---------|
+| `_base.scss` | Variables (colours, fonts), CSS reset |
+| `_display.scss` | TV display styles |
+| `_control.scss` | DM control panel styles |
+| `styles.scss` | Entry point — imports the three partials |
+
+`npm run dev` runs the SCSS watcher automatically. To compile once without starting the server:
+
+```bash
+npm run build:css
+```
+
+---
+
 ## Project structure
 
 ```
@@ -124,11 +145,19 @@ public/
   control.html     — DM control panel
   display.html     — TV display
   js/              — Client-side JS
+  styles/
+    styles.css     — Compiled CSS (do not edit — generated from src/styles/)
+src/
+  styles/
+    _base.scss     — Variables and reset
+    _display.scss  — Display page styles
+    _control.scss  — Control panel styles
+    styles.scss    — SCSS entry point
 lib/
   scanImages.js    — Groups image files by base name for slideshows
   slideshowState.js — Server-side slideshow state machine
-monsters/          — Monster images (gitignored, created on first run)
-environments/      — Environment images (gitignored, created on first run)
+monsters/          — Monster images (created on first run if missing)
+environments/      — Environment images (created on first run if missing)
 .github/workflows/
   build.yml        — CI: builds macOS DMG + Windows installer on tag push
 ```

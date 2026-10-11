@@ -1,6 +1,6 @@
 {
   "name": "dnd-slides",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "D&D Monster Display for DM sessions",
   "license": "ISC",
   "author": "",
@@ -31,6 +31,15 @@
     "nprogress": "^0.2.0",
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.7.0"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/dist/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/"
+    ]
   },
   "build": {
     "appId": "com.dnd-slides",

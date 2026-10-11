@@ -11,35 +11,9 @@
   <header>
     <div class="header-top">
       <h1>🐉 DM Control Panel</h1>
-      <div class="header-top__actions">
-        <div class="connection">
-          <span class="dot" id="conn-dot"></span>
-          <span id="conn-text">Connecting...</span>
-        </div>
-        <button class="btn-start" id="btn-start" title="Start encounter">▶ Start</button>
-        <button class="btn-hide"  id="btn-hide">👁 Hide</button>
-        <button class="btn-clear" id="btn-clear">✕ Clear</button>
-      </div>
-    </div>
-    <div class="header-bottom">
-      <div class="header-controls">
-        <div class="mode-toggle">
-          <button class="btn-mode btn-mode--active" id="btn-mode-encounter"   data-mode="encounter">Encounter</button>
-          <button class="btn-mode"                  id="btn-mode-exploration" data-mode="exploration">Exploration</button>
-        </div>
-        <div class="slide-controls">
-          <button class="btn-nav"   id="btn-prev"  title="Previous slide">⏮</button>
-          <button class="btn-nav"   id="btn-next"  title="Next slide">⏭</button>
-          <button class="btn-pause" id="btn-pause" title="Pause slideshow">⏸ Pause</button>
-          <label class="duration-label">
-            <input id="slide-duration" type="number" min="1" step="1" value="5" title="Seconds per slide" />
-            <span>sec</span>
-          </label>
-        </div>
-        <label class="kb-toggle">
-          <input type="checkbox" id="kb-toggle" />
-          Ken Burns
-        </label>
+      <div class="connection">
+        <span class="dot" id="conn-dot"></span>
+        <span id="conn-text">Connecting...</span>
       </div>
     </div>
   </header>
@@ -72,7 +46,34 @@
     <p>No monster images found.<br>
       Drop image files into the <code>monsters/</code> folder and click <strong>⟳ Refresh</strong>.<br><br>
       Supports: PNG, JPG, GIF, WebP, SVG<br>
-      Use subfolders to organize by type!</p>
+      Use subfolders to organise by type!</p>
+  </div>
+
+  <div class="play-bar">
+    <label class="mode-switch">
+      <span class="toggle-switch">
+        <input type="checkbox" id="mode-toggle" checked />
+        <span class="toggle-slider"></span>
+      </span>
+      <span class="mode-label" id="mode-toggle-label">Encounter</span>
+    </label>
+
+    <div class="play-controls">
+      <button class="btn-nav" id="btn-prev" title="Previous slide">⏮</button>
+      <button class="btn-playpause" id="btn-playpause" title="Play/Pause">▶</button>
+      <button class="btn-stop" id="btn-stop" title="Stop — blank the display" disabled>⏹</button>
+      <button class="btn-nav" id="btn-next" title="Next slide">⏭</button>
+    </div>
+
+    <label class="duration-label">
+      <input id="slide-duration" type="number" min="1" step="1" value="5" title="Seconds per slide" />
+      <span>sec/slide</span>
+    </label>
+
+    <label class="kb-toggle">
+      <input type="checkbox" id="kb-toggle" />
+      Moving Slide
+    </label>
   </div>
 
   <script src="/nprogress/nprogress.js"></script>
